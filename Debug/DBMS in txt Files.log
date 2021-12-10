@@ -1,0 +1,5 @@
+﻿  DBMS in txt Files.cpp
+d:\abdulrahman kabil.fcai\3rd year\files\dbms in txt files\dbms in txt files\dbms in txt files.cpp(292): warning C4244: 'initializing': conversion from 'std::streamoff' to 'int', possible loss of data
+d:\abdulrahman kabil.fcai\3rd year\files\dbms in txt files\dbms in txt files\dbms in txt files.cpp(559): warning C4244: 'initializing': conversion from 'std::streamoff' to 'int', possible loss of data
+  DBMS in txt Files.vcxproj -> D:\Abdulrahman kabil.FCAI\3rd YEAR\FILES\DBMS in txt Files\Debug\DBMS in txt Files.exe
+  DBMS in txt Files.vcxproj -> D:\Abdulrahman kabil.FCAI\3rd YEAR\FILES\DBMS in txt Files\Debug\DBMS in txt Files.pdb (Full PDB)
