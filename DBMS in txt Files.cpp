@@ -250,6 +250,8 @@ int indexBinarySearchS_D(SecIndexD arr[], int p, int r, char* name) {
 	}
 	return -1;
 }
+
+
 class employee {
 	const static int PIndexESize = 100;
 	SecIndex SIndex[PIndexESize];
@@ -258,16 +260,46 @@ class employee {
 	int PIndexCounter = 0;
 	int SIndexCounter = 0;
 	int linkPtr = 0;
-	char employeeID[13];
-	char deptID[30];
-	char employeeName[50];
-	char employeePosition[50];
+
+public:
 	string dataFilePath = "employees.txt";
 	string pIndexFilePath = "empIndex.txt";
 	string sIndexFilePath = "emp_sIndex.txt";
 	string sIndexLinkFilePath = "empLinkedList.txt";
-public:
-	
+	char employeeID[13];
+	char deptID[30];
+	char employeeName[50];
+	char employeePosition[50];
+	int indexOfArrayOfEmployeeID = 0;
+	int arr[100];
+	void savePIndex() {
+		ofstream PIfile(pIndexFilePath, ios::trunc);
+		for (int i = 0; i < PIndexCounter; i++)
+		{
+			PIndex temp = index[i];
+			PIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
+		}
+		PIfile.close();
+	}
+	void saveSIndex() {
+		ofstream SIfile(sIndexFilePath, ios::trunc);
+		for (int i = 0; i < SIndexCounter; i++)
+		{
+			SecIndex temp = SIndex[i];
+			SIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
+		}
+		SIfile.close();
+	}
+	void saveSLIndex() {
+
+		ofstream Lfile(sIndexLinkFilePath, ios::trunc);
+		for (int i = 0; i < linkPtr; i++)
+		{
+			node temp = linkedList[i];
+			Lfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
+		}
+		Lfile.close();
+	}
 	void writeEmployee() {
 			//enter data of employee by user
 			employee temp = enterData();
@@ -298,11 +330,15 @@ public:
 			writePIndex(id, address);//add new index to primary index
 			writeSecIndex(depID, id);
 			outfile.close();
+			savePIndex();
+			saveSIndex();
+			saveSLIndex();
 	
 		}
 	employee enterData() {
 		employee temp;
 		cout << "Enter Employee ID: " << endl;
+		
 		cin.getline(temp.employeeID, 13);
 		cout << "Enter Employee Department ID: " << endl;
 		cin.getline(temp.deptID, 30);
@@ -345,6 +381,9 @@ public:
 		
 			linkPtr++;
 		}
+		savePIndex();
+		saveSIndex();
+		saveSLIndex();
 		
 		
 	}
@@ -353,6 +392,9 @@ public:
 		index[PIndexCounter].offset = address;
 		quickSort(index, 0, PIndexCounter);//sort primary index in ID
 		PIndexCounter++;
+		savePIndex();
+		saveSIndex();
+		saveSLIndex();
 	}
 	void readEmployeeByID(char* id) {
 		
@@ -362,7 +404,7 @@ public:
 		int address = indexBinarySearch(index, 0, PIndexCounter, id);
 		if (address == -1)
 		{
-			cout << "\nthis Employee not exists";
+			cout << "\nthis Employee not exists\n";
 			return;
 		}
 		int len;
@@ -381,6 +423,36 @@ public:
 		outfile.close();
 		delete buffer;
 	}
+	employee readEmployeeByIDForQ(char* id) {
+
+		ifstream outfile;
+		outfile.open(dataFilePath, ios::binary | ios::in);
+
+		int address = indexBinarySearch(index, 0, PIndexCounter, id);
+		if (address == -1)
+		{
+			cout << "\nthis Employee not exists\n";
+			
+		}
+		else {
+			int len;
+			employee e;
+			outfile.seekg(index[address].offset, ios::beg);
+			outfile.read((char*)&len, sizeof(len));
+			char *buffer = new char[len];
+			outfile.read(buffer, len);
+
+			istringstream stream(buffer);
+			stream.getline(e.employeeID, 13, '|');
+			stream.getline(e.deptID, 30, '|');
+			stream.getline(e.employeeName, 50, '|');
+			stream.getline(e.employeePosition, 50, '|');
+			outfile.close();
+			delete buffer;
+			return e;
+		}
+		
+	}
 	void readEmployeeByDepID() {
 		char depID[30];
 		cout << "enter Department id :";
@@ -392,27 +464,97 @@ public:
 		int address = indexBinarySearchS(SIndex, 0, SIndexCounter, depID);
 		if (address == -1)
 		{
-			cout << "\nthis Employee not exists";
+			cout << "\nthis Employee not exists\n";
 			return;
 		}
 		
 		int pointer = SIndex[address].pointer;
 		int next = linkedList[pointer].next;
+		cout << "*****************\n";
 		readEmployeeByID(linkedList[pointer].id);
 		while (next != -1) {
-		
+			cout << "*****************\n";
 			readEmployeeByID(linkedList[next].id);
 			next = linkedList[next].next;
 		}
 	}
+	int* readEmployeeByDepIDForQ(char* depID) {
+		ifstream outfile;
+		outfile.open(dataFilePath, ios::binary | ios::in);
+
+		int address = indexBinarySearchS(SIndex, 0, SIndexCounter, depID);
+		if (address == -1)
+		{
+			cout << "\nthis Employee not exists\n";
+			
+		}
+		else {
+			int pointer = SIndex[address].pointer;
+			int next = linkedList[pointer].next;
+			arr[indexOfArrayOfEmployeeID] = atoi(linkedList[pointer].id);
+			indexOfArrayOfEmployeeID++;
+			while (next != -1) {
+				arr[indexOfArrayOfEmployeeID] = atoi(linkedList[next].id);
+				indexOfArrayOfEmployeeID++;
+				next = linkedList[next].next;
+				
+			}
+			return arr;
+		}
+	}
+	void deleteEmployee() {
+		char id[30];
+		employee e;
+		cout << "Enter Employee ID :";
+		cin >> id;
+		fstream f(dataFilePath, ios::binary | ios::out | ios::in);
+		int address = indexBinarySearch(index,0,PIndexCounter,id);
+		if (address == -1)
+		{
+			cout << "\n Employee not found\n";
+			return;
+		}
+		//shift pIndex
+		f.seekp(index[address].offset + 4, ios::beg);
+		f << '*';
 		
+		for (int i = address; i<PIndexCounter-1; i++)
+			index[i] = index[i + 1];
+		PIndexCounter--;
+		for (int i = 0; i < linkPtr ; i++) {
+			if (linkedList[i].id == id) {
+				if (linkedList[i].next != -1) {
+					e = readEmployeeByIDForQ(linkedList[linkedList[i].next].id);
+					int found = indexBinarySearchS(SIndex, 0, SIndexCounter, e.deptID);
+					SIndex[found].pointer = linkedList[i].next;
+					linkedList[i].next = -1;
+					strcpy_s(linkedList[i].id, "-1");
+				}
+				else {
+					e = readEmployeeByIDForQ(linkedList[i].id);
+					int found = indexBinarySearchS(SIndex, 0, SIndexCounter, e.deptID);
+					for (int i = found; i < SIndexCounter - 1; i++)
+						SIndex[i] = SIndex[i + 1];
+					SIndexCounter--;
+				}
+				break;
+			}
+		}
+		f.close();
+		savePIndex();
+		saveSIndex();
+		saveSLIndex();
+	}
 	void printEmployee(employee &e) {
+		if (e.employeeID[0] == '*') {
+			cout << "\nthis Department not exists\n";
+			return;
+		}
 		cout << "Employee ID : " << e.employeeID << endl;
 		cout << "Employee DepID : " << e.deptID << endl;
 		cout << "Employee Name : " << e.employeeName << endl;
 		cout << "Employee Pos : " << e.employeePosition << endl;
 	}
-		
 	void loadPIndex() {
 		
 		ifstream PIfile(pIndexFilePath);
@@ -431,22 +573,10 @@ public:
 			index[PIndexCounter] = temp;
 			PIndexCounter++;
 		}
-		cout << "n" << PIndexCounter;
-		for (int i = 0; i < PIndexCounter - 1; i++) {
-			cout << index[i].ID << "/" << index[i].offset << endl;
-		}
-		PIfile.close();
-	}
-	void savePIndex() {
-		ofstream PIfile(pIndexFilePath, ios::trunc);
-		for (int i = 0; i < PIndexCounter; i++)
-		{
-			PIndex temp = index[i];
-			PIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
-		}
-		PIfile.close();
-	}
 		
+		PIfile.close();
+	}
+
 	void loadSIndex() {
 		
 		ifstream SIfile(sIndexFilePath);
@@ -461,25 +591,10 @@ public:
 			SIndex[SIndexCounter] = temp;
 			SIndexCounter++;
 		}
-		for (int i = 0; i < SIndexCounter; i++) {
-			cout << "Sec index\n";
-			cout << SIndex[i].depID << "/" << SIndex[i].pointer << endl;
-		}
+		
 		SIfile.close();
 	}
-	void saveSIndex() {
-		for (int i = 0; i < SIndexCounter - 1; i++) {
-			cout << "Sec index\n";
-			cout << SIndex[i].depID << "/" << SIndex[i].pointer << endl;
-		}
-		ofstream SIfile(sIndexFilePath, ios::trunc);
-		for (int i = 0; i < SIndexCounter; i++)
-		{
-			SecIndex temp = SIndex[i];
-			SIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
-		}
-		SIfile.close();
-	}
+	
 		
 	void loadSLIndex() {
 		
@@ -495,28 +610,14 @@ public:
 			linkedList[linkPtr] = temp;
 			linkPtr++;
 		}
-		for (int i = 0; i < linkPtr; i++) {
-			cout << "Sec link index\n";
-			cout << linkedList[i].id << "/" << linkedList[i].next << endl;
-		}
+		
 		
 		Lfile.close();
 	}
-	void saveSLIndex() {
-		for (int i = 0; i < linkPtr - 1; i++) {
-			cout << "Sec link index\n";
-			cout << linkedList[i].id << "/" << linkedList[i].next << endl;
-		}
-		ofstream Lfile(sIndexLinkFilePath, ios::trunc);
-		for (int i = 0; i < linkPtr; i++)
-		{
-			node temp = linkedList[i];
-			Lfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
-		}
-		Lfile.close();
-	}
+	
 
 };
+
 class department {
 	
 	const static int PIndexESize = 100;
@@ -527,15 +628,43 @@ class department {
 	int SIndexCounter = 0;
 	int linkPtr = 0;
 	int next=0;
-	char departID[30];
-	char departName[50];
-	char departManger[50];
+public:
 	string dataFilePath = "departments.txt";
 	string pIndexFilePath = "depIndex.txt";
 	string sIndexFilePath = "dep_sIndex.txt";
 	string sIndexLinkFilePath = "depLinkedList.txt";
-public:
-
+	char departID[30];
+	char departName[50];
+	char departManger[50];
+	int indexOfArrayOfDepartmentID = 0;
+	int arr[100];
+	void savePIndex() {
+		ofstream PIfile(pIndexFilePath, ios::trunc);
+		for (int i = 0; i < PIndexCounter; i++)
+		{
+			PIndexD temp = index[i];
+			PIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
+		}
+		PIfile.close();
+	}
+	void saveSIndex() {
+		ofstream SIfile(sIndexFilePath, ios::trunc);
+		for (int i = 0; i < SIndexCounter; i++)
+		{
+			SecIndexD temp = SIndex[i];
+			SIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
+		}
+		SIfile.close();
+	}
+	void saveSLIndex() {
+		ofstream Lfile(sIndexLinkFilePath, ios::trunc);
+		for (int i = 0; i < linkPtr; i++)
+		{
+			node temp = linkedList[i];
+			Lfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
+		}
+		Lfile.close();
+	}
 	void writeDepartment() {
 		//enter data of employee by user
 		department temp = enterData();
@@ -565,6 +694,9 @@ public:
 		writePIndex(id, address);//add new index to primary index
 		writeSecIndex(name, id);
 		outfile.close();
+		savePIndex();
+		saveSIndex();
+		saveSLIndex();
 
 	}
 	department enterData() {
@@ -609,6 +741,9 @@ public:
 
 			linkPtr++;
 		}
+		savePIndex();
+		saveSIndex();
+		saveSLIndex();
 
 
 	}
@@ -617,6 +752,9 @@ public:
 		index[PIndexCounter].offset = address;
 		quickSort(index, 0, PIndexCounter);//sort primary index in ID
 		PIndexCounter++;
+		savePIndex();
+		saveSIndex();
+		saveSLIndex();
 	}
 	void readDepartmentByID(char* id) {
 
@@ -626,7 +764,7 @@ public:
 		int address = indexBinarySearch(index, 0, PIndexCounter, id);
 		if (address == -1)
 		{
-			cout << "\nthis Employee not exists";
+			cout << "\nthis Department not exists\n";
 			return;
 		}
 		int len;
@@ -644,6 +782,34 @@ public:
 		outfile.close();
 		delete buffer;
 	}
+	department readDepartmentByIDForQ(char* id) {
+
+		ifstream outfile;
+		outfile.open(dataFilePath, ios::binary | ios::in);
+
+		int address = indexBinarySearch(index, 0, PIndexCounter, id);
+		if (address == -1)
+		{
+			cout << "\nthis Department not exists\n";
+			
+		}
+		else {
+			int len;
+			department d;
+			outfile.seekg(index[address].offset, ios::beg);
+			outfile.read((char*)&len, sizeof(len));
+			char *buffer = new char[len];
+			outfile.read(buffer, len);
+
+			istringstream stream(buffer);
+			stream.getline(d.departID, 30, '|');
+			stream.getline(d.departName, 50, '|');
+			stream.getline(d.departManger, 50, '|');
+			return d;
+			outfile.close();
+			delete buffer;
+		}
+	}
 	void readDepartmentByName() {
 		char name[50];
 		cout << "enter Department Name :";
@@ -655,24 +821,98 @@ public:
 		int address = indexBinarySearchS_D(SIndex, 0, SIndexCounter, name);
 		if (address == -1)
 		{
-			cout << "\nthis Employee not exists";
+			cout << "\nthis Department not exists\n";
 			return;
 		}
 
 		int pointer = SIndex[address].pointer;
 		int next = linkedList[pointer].next;
+		cout << "*****************\n";
 		readDepartmentByID(linkedList[pointer].id);
 		while (next != -1) {
-
+			cout << "*****************\n";
 			readDepartmentByID(linkedList[next].id);
 			next = linkedList[next].next;
 		}
 	}
+	int* readDepartmentByNameForQ(char* name) {
+		
+		ifstream outfile;
+		outfile.open(dataFilePath, ios::binary | ios::in);
 
+		int address = indexBinarySearchS_D(SIndex, 0, SIndexCounter, name);
+		if (address == -1)
+		{
+			cout << "\nthis Department not exists\n";
+			
+		}
+		else {
+			int pointer = SIndex[address].pointer;
+			int next = linkedList[pointer].next;
+			arr[indexOfArrayOfDepartmentID] = atoi(linkedList[pointer].id);
+			indexOfArrayOfDepartmentID++;
+			while (next != -1) {
+				arr[indexOfArrayOfDepartmentID] = atoi(linkedList[next].id);
+				indexOfArrayOfDepartmentID++;
+				next = linkedList[next].next;
+			}
+			return arr;
+		}
+	}
+
+	void deleteDepartment() {
+		char id[30];
+		department d;
+		cout << "Enter Department ID :";
+		cin >> id;
+		fstream f(dataFilePath, ios::binary | ios::out | ios::in);
+		int address = indexBinarySearch(index, 0, PIndexCounter, id);
+		if (address == -1)
+		{
+			cout << "\n Department not found\n";
+			return;
+		}
+		//shift pIndex
+		f.seekp(index[address].offset + 4, ios::beg);
+		f << '*';
+
+		for (int i = address; i<PIndexCounter - 1; i++)
+			index[i] = index[i + 1];
+		PIndexCounter--;
+		for (int i = 0; i < linkPtr; i++) {
+			if (linkedList[i].id == id) {
+				if (linkedList[i].next != -1) {
+					d = readDepartmentByIDForQ(linkedList[linkedList[i].next].id);
+					int found = indexBinarySearchS_D(SIndex, 0, SIndexCounter, d.departName);
+					SIndex[found].pointer = linkedList[i].next;
+					linkedList[i].next = -1;
+					strcpy_s(linkedList[i].id, "-1");
+				}
+				else {
+					d = readDepartmentByIDForQ(linkedList[i].id);
+					int found = indexBinarySearchS_D(SIndex, 0, SIndexCounter, d.departName);
+					for (int i = found; i < SIndexCounter - 1; i++)
+						SIndex[i] = SIndex[i + 1];
+					SIndexCounter--;
+				}
+				break;
+			}
+		}
+		
+		f.close();
+		savePIndex();
+		saveSIndex();
+		saveSLIndex();
+	}
 	void printDepartment(department &d) {
+		if (d.departID[0] == '*') {
+			cout << "\nthis Department not exists\n";
+			return;
+		}
 		cout << "Department ID : " << d.departID << endl;
 		cout << "Department Name : " << d.departName << endl;
 		cout << "Department Manger : " << d.departManger << endl;
+		
 	}
 
 	void loadPIndex() {
@@ -693,22 +933,10 @@ public:
 			index[PIndexCounter] = temp;
 			PIndexCounter++;
 		}
-		cout << "n" << PIndexCounter;
-		for (int i = 0; i < PIndexCounter - 1; i++) {
-			cout << index[i].ID << "/" << index[i].offset << endl;
-		}
+		
 		PIfile.close();
 	}
-	void savePIndex() {
-		ofstream PIfile(pIndexFilePath, ios::trunc);
-		for (int i = 0; i < PIndexCounter; i++)
-		{
-			PIndexD temp = index[i];
-			PIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
-		}
-		PIfile.close();
-	}
-
+	
 	void loadSIndex() {
 
 		ifstream SIfile(sIndexFilePath);
@@ -723,26 +951,9 @@ public:
 			SIndex[SIndexCounter] = temp;
 			SIndexCounter++;
 		}
-		for (int i = 0; i < SIndexCounter; i++) {
-			cout << "Sec index\n";
-			cout << SIndex[i].name << "/" << SIndex[i].pointer << endl;
-		}
 		SIfile.close();
 	}
-	void saveSIndex() {
-		for (int i = 0; i < SIndexCounter - 1; i++) {
-			cout << "Sec index\n";
-			cout << SIndex[i].name << "/" << SIndex[i].pointer << endl;
-		}
-		ofstream SIfile(sIndexFilePath, ios::trunc);
-		for (int i = 0; i < SIndexCounter; i++)
-		{
-			SecIndexD temp = SIndex[i];
-			SIfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
-		}
-		SIfile.close();
-	}
-
+	
 	void loadSLIndex() {
 
 		ifstream Lfile(sIndexLinkFilePath);
@@ -757,51 +968,253 @@ public:
 			linkedList[linkPtr] = temp;
 			linkPtr++;
 		}
-		for (int i = 0; i < linkPtr; i++) {
-			cout << "Sec link index\n";
-			cout << linkedList[i].id << "/" << linkedList[i].next << endl;
-		}
-
 		Lfile.close();
 	}
-	void saveSLIndex() {
-		for (int i = 0; i < linkPtr - 1; i++) {
-			cout << "Sec link index\n";
-			cout << linkedList[i].id << "/" << linkedList[i].next << endl;
-		}
-		ofstream Lfile(sIndexLinkFilePath, ios::trunc);
-		for (int i = 0; i < linkPtr; i++)
-		{
-			node temp = linkedList[i];
-			Lfile.write((char*)&temp, sizeof(temp)); //fixed len record, fixed len field
-		}
-		Lfile.close();
-	}
+	
 };
 
+void query(employee &e, department &d) {
+	employee t;
+	department t1;
+	char text0[200];
+	cout << "Enter Query: ";
+	cin.getline(text0, 200);
 
+	string text, delim = " ", arr[8];
+	string s;
+	text.append(text0);
+	int pos = 0, i = 0;
+	while ((pos = text.find(delim)) != string::npos) {
+		arr[i] = (text.substr(0, pos));
+		text.erase(0, pos + delim.length());
+		i++;
+	}
+	arr[i] = text;
+	arr[7].erase(0, 1);
+	arr[7].erase(arr[7].length() - 1, arr[7].length());
+	if (arr[0] == "select" && arr[2] == "from" && arr[4] == "where" && arr[6] == "=") {
+		if (arr[3] == "Employee" || arr[3] == "employee") {
+			if (arr[5] == "id") {
+				char id[13];
+				strcpy_s(id, arr[7].c_str());
+				cout << id;
+				t = e.readEmployeeByIDForQ(id);
+				if (arr[1] == "all") {
+					cout << "********RESULT**********\n";
+					e.printEmployee(t);
+				}
+				else if (arr[1] == "name") {
+					cout << "********RESULT**********\n";
+					cout << t.employeeName << endl;
+				}
+				else if (arr[1] == "depID") {
+					cout << "********RESULT**********\n";
+					cout << t.deptID << endl;
+				}
+				else if (arr[1] == "position") {
+					cout << "********RESULT**********\n";
+					cout << t.employeePosition << endl;
+				}
+			}
+			else if (arr[5] == "depID") {
+				char depID[30];
+				strcpy_s(depID, arr[7].c_str());
+				int *employeeArray;
+				employeeArray = e.readEmployeeByDepIDForQ(depID);
+				int size = e.indexOfArrayOfEmployeeID;
+				if (arr[1] == "all") {
+					cout << "********RESULT**********\n";
+					for (int j = 0; j < size; j++) {
+						s = to_string(*(employeeArray + j));
+						char* id = new char[s.length()];
+						strcpy(id, s.c_str());
+						cout << "Employee 1" << endl;
+						e.readEmployeeByID(id);
+					}
+					e.indexOfArrayOfEmployeeID = 0;
+				}
+				else if (arr[1] == "id") {
+					cout << "********RESULT**********\n";
+					for (int j = 0; j < size; j++) {
+						s = to_string(*(employeeArray + j));
+						char* id = new char[s.length()];
+						strcpy(id, s.c_str());
+						t = e.readEmployeeByIDForQ(id);
+						cout << j + 1 << " : " << t.employeeID << endl;
+					}
+					e.indexOfArrayOfEmployeeID = 0;
+				}
+				else if (arr[1] == "name") {
+					cout << "********RESULT**********\n";
+					for (int j = 0; j < size; j++) {
+						s = to_string(*(employeeArray + j));
+						char* id = new char[s.length()];
+						strcpy(id, s.c_str());
+						t = e.readEmployeeByIDForQ(id);
+						cout << j + 1 << " : " << t.employeeName << endl;
+					}
+					e.indexOfArrayOfEmployeeID = 0;
+
+				}
+				else if (arr[1] == "position") {
+					cout << "********RESULT**********\n";
+					for (int j = 0; j < size; j++) {
+						s = to_string(*(employeeArray + j));
+						char* id = new char[s.length()];
+						strcpy(id, s.c_str());
+						t = e.readEmployeeByIDForQ(id);
+						cout << j + 1 << " : " << t.employeePosition << endl;
+					}
+				}
+			}
+
+		}
+		else if (arr[3] == "Department" || arr[3] == "department") {
+			if (arr[5] == "id") {
+				char id[30];
+				strcpy_s(id, arr[7].c_str());
+				cout << id;
+				t1 = d.readDepartmentByIDForQ(id);
+				if (arr[1] == "all") {
+					cout << "********RESULT**********\n";
+						d.printDepartment(t1);
+				}
+				else if (arr[1] == "name") {
+					cout << "********RESULT**********\n";
+					cout << t1.departName << endl;
+				}
+				else if (arr[1] == "manger") {
+					cout << "********RESULT**********\n";
+					cout << t1.departManger << endl;
+				}
+			}
+			else if (arr[5] == "name") {
+				char name[50];
+				strcpy_s(name, arr[7].c_str());
+				int *departmentArray;
+				departmentArray = d.readDepartmentByNameForQ(name);
+				int size = d.indexOfArrayOfDepartmentID;
+				if (arr[1] == "all") {
+					cout << "********RESULT**********\n";
+					for (int j = 0; j < size; j++) {
+						s = to_string(*(departmentArray + j));
+						char* id = new char[s.length()];
+						strcpy(id, s.c_str());
+						cout << "************" << j + 1 << "***********" << endl;
+						d.readDepartmentByID(id);
+					}
+					d.indexOfArrayOfDepartmentID = 0;
+				}
+				else if (arr[1] == "id") {
+					cout << "********RESULT**********\n";
+					for (int j = 0; j < size; j++) {
+						s = to_string(*(departmentArray + j));
+						char* id = new char[s.length()];
+						strcpy(id, s.c_str());
+						t1 = d.readDepartmentByIDForQ(id);
+						cout << j + 1 << " : " << t1.departID << endl;
+					}
+					d.indexOfArrayOfDepartmentID = 0;
+				}
+				else if (arr[1] == "manger") {
+					cout << "********RESULT**********\n";
+					for (int j = 0; j < size; j++) {
+						s = to_string(*(departmentArray + j));
+						char* id = new char[s.length()];
+						strcpy(id, s.c_str());
+						t = e.readEmployeeByIDForQ(id);
+						cout << j + 1 << ": " << t.employeeName << endl;
+					}
+					e.indexOfArrayOfEmployeeID = 0;
+
+				}
+			}
+		}
+	}
+	else {
+		cout << "Query Syntax not correct !\n";
+	}
+	
+}
 void main() {
+	employee e;
+	department d;
+	ifstream f1,f2,f3,f4,f5,f6;
+	f1.open(e.pIndexFilePath);
+	f2.open(e.sIndexFilePath);
+	f3.open(e.sIndexLinkFilePath);
+	f4.open(d.pIndexFilePath);
+	f5.open(d.sIndexFilePath);
+	f6.open(d.sIndexLinkFilePath);
+	if (f1) 
+		e.loadPIndex();
+	if (f2)
+		e.loadSIndex();
+	if (f3)
+		e.loadSLIndex();
+	if (f4)
+		d.loadPIndex();
+	if (f5)
+		d.loadSIndex();
+	if (f6)
+		d.loadSLIndex();
+	int select1 = 0;
+	int i = 0;
+	while (select1 != 11) {
+		cout << "1-Add New Employee\n2-Add New Department\n3-Delete Employee(ID)\n4-Delete Department(ID)\n5-Print Employee(ID)";
+		cout << "\n6-Print Employee (Dep_ID)\n7-Print Department (ID)\n8-Print Department(Dep_Name)\n9-Write Query\n10-Exit\n";
+		cin >> select1;
+		switch (select1)
+		{
+		case 1:
+			cin.ignore(100, '\n');
+			e.writeEmployee();
+			break;
+		case 2:
+			cin.ignore(100, '\n');
+				d.writeDepartment();
+			break;
+		case 3:
+			e.deleteEmployee();
+			break;
+		case 4:
+			d.deleteDepartment();
+			
+			break;
+		case 5:
+			char id[13];
+			cout << "Enter Employee ID: ";
+			cin >> id;
+			e.readEmployeeByID(id);
+			break;
+		case 6:
+			e.readEmployeeByDepID();
+			break;
+		case 7:
+			char id1[50];
+			cout << "Enter Department ID";
+			cin >> id1;
+			d.readDepartmentByID(id1);
+			break;
+		case 8:
+			d.readDepartmentByName();
+			break;
+		case 9:
+			cin.ignore(100, '\n');
+			query(e,d);
+			break;
+		case 10:
+			e.savePIndex();
+			e.saveSIndex();
+			e.saveSLIndex();
+			d.savePIndex();
+			d.saveSIndex();
+			d.saveSLIndex();
+			select1 = 11;
+			break;
+		}
+	}
 
 	
-	department e;
-	char id[50];
-
-	/*for (int i = 0; i < 4; i++) {
-		e.writeDepartment();
-	}
-	e.savePIndex();
-	e.saveSIndex();
-	e.saveSLIndex();*/
-	e.loadPIndex();
-	e.loadSIndex();
-	e.loadSLIndex();
-	for (int i = 0; i < 3; i++) {
-		cout << endl << "Enter ID: ";
-		cin >> id;
-		e.readDepartmentByID(id);
-	}
-	for (int i = 0; i < 3; i++) {
-		e.readDepartmentByName();
-	}
 	system("pause");
 }
