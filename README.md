@@ -23,7 +23,7 @@ Examples for queries that user can write
 ------------
 
 - ### All indexes are sorted ascending
-- ### You MUST implement secondary indexes using Linked List technique.
+- ### Implement secondary indexes using Linked List technique.
 - ### Searching in indexes is performed using binary search.
 - ### To delete a record just put an * in the beginning of that record. (no need for avail list implementation)
 - ### All operations (add, delete) will affect indexes.
